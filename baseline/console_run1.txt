@@ -1,0 +1,299 @@
+DATA UPLOAD FROM CSV/TXT — SUMMARY
+  Source      : src/main/resources/dataset.txt
+  Format      : text;label (semicolon-separated)
+  Total loaded: 1440 tweets | Skipped: 0
+
+  [Class Distribution]
+  -------------------------------------------------------
+  Label        Count    Pct%     Bar
+  -------------------------------------------------------
+  joy          498      34.58    █████████████████
+  sadness      415      28.82    ██████████████
+  anger        182      12.64    ██████
+  fear         171      11.88    █████
+  love         121      8.40     ████
+  surprise     53       3.68     █
+
+  [Sample Records (first 5 per class)]
+  --------------------------------------------------------------------------------
+  [   1] fear       | i think i was feeling vulnerable due to the stress of having to b...
+  [   2] sadness    | i feel ashamed to have not read it yet
+  [   3] sadness    | i hear about a teenaged girl devastated by the pimple on her face...
+  [   4] fear       | i woke up on a beautiful sunday morning feeling restless and mise...
+  [   5] sadness    | i feel unwelcome at work sometimes and think people might be talk...
+  [   6] love       | i dont need to wear a mask because at this moment i can show all ...
+  [   7] fear       | i couldn t turn my head away even when i feel frightened
+  [   8] joy        | i feel like i should go to the supermarket and buy something tota...
+  [   9] joy        | i feel fine e terminando com eight days a week um ano depois
+  [  10] fear       | i feel the most uncertain about the project
+  [  11] joy        | i feel vital full of energy every day and super positive
+  [  12] anger      | i feel i am completely dissatisfied with the whole world and all ...
+  [  13] joy        | i mean how would you feel if euan got hauled in for murder but yo...
+  [  14] joy        | i have experimented lots of the experiences she mentions and sadl...
+  [  15] anger      | i knew from high school and he s pretty fuckin chill says that th...
+  [  18] love       | i feel a bit nostalgic as i wonder where my passion for writing a...
+  [  19] anger      | im feeling particularly dangerous a chocolate cookie
+  [  23] anger      | i actually thought i would feel bothered being their since ehb an...
+  [  25] love       | i also have to attire my regular moisturizer and an oil based pri...
+  [  26] fear       | i feel apprehensive about the ride ahead
+  [  27] anger      | i feel bothered
+  [  28] love       | i feel a hint of my beloved art nouveau era in this bracelet
+  [  29] sadness    | i mostly take the stairs there are of them but occasionally when ...
+  [  31] sadness    | i feel sort of pathetic saying that my iphone internet and tv are...
+  [  33] love       | i laced my shoes and pounded out those feelings on the hot black ...
+  [  61] surprise   | i still feel a little dazed and high which is alarming since its ...
+  [ 155] surprise   | i think of how much time we spent just doing fun childhood stuff ...
+  [ 280] surprise   | i know i would feel weird about that and probably act strangely f...
+  [ 283] surprise   | i feel so deeply shocked and saddened
+  [ 287] surprise   | i think i brag and it feels strange because i still see myself as...
+---------------------------------------------------------------------
+||ALL EXTRACTED FEATURES SUMMARY                 ||
+---------------------------------------------------------------------
+
+  1. LEMMAS
+     Unique lemmas in corpus   : 2778
+     TF-IDF vocabulary size    : 400 terms
+     Sample: real, love, people, someth, bit, thing, ive, going, much, life, help, friend
+
+  2. NLP META-FEATURES (12 per tweet)
+     num_tokens, num_lemmas, avg_word_len, type_ratio,
+     exclamations, questions, negation, lexicon_hits,
+     long_words, caps_count, compression_ratio, emotion_suffixes
+
+  3. BIGRAMS
+     Vocabulary : 200 unique bigrams
+     Sample: cant_help, many_people, thought_someth, anyone_else, real_lot, best_friend
+
+  4. N-GRAMS (trigrams)
+     Vocabulary : 150 unique trigrams
+     Sample: bit_fearful_rememb, begg_god_love, three_month_happy, year_school_stupid
+
+  5. TF-IDF
+     Vector dim : 400 | IDF computed on 1440 documents
+
+  6. CO-OCCURRENCE / CoCo (window=2)
+     Context vocab : 300 | Matrix entries: 2778
+
+  7. EMOTION LEXICON FEATURES (12 dims)
+     Lexicon entries   : 161 emotion-labelled words
+     6 normalised emotion scores + 6 match-count features
+
+  8. CLASS-CONDITIONAL BINARY FEATURES
+     Top 20 words per class × 6 classes = 120 binary dims
+
+  [Feature Vector Dimensions per Mode]
+  ---------------------------------------------
+  TF-IDF only:           408
+  CoCo only:             320
+  Bigram only:           220
+  N-gram only:           170
+  Lemma+TF-IDF:          820
+  Lemma+CoCo:            720
+  Full (all modes):      1594
+RNN-LSTM | fold=10 | act=relu | mode=tfidf | Acc=97.92%
+RNN-LSTM | fold=10 | act=relu | mode=coco | Acc=97.24%
+RNN-LSTM | fold=10 | act=relu | mode=bigram | Acc=97.64%
+RNN-LSTM | fold=10 | act=relu | mode=ngram | Acc=97.39%
+RNN-LSTM | fold=10 | act=relu | mode=lemma+tfidf | Acc=97.67%
+RNN-LSTM | fold=10 | act=relu | mode=lemma+coco | Acc=98.23%
+---------------------------------------------------------------------
+|ALL CLASSIFIER RESULTS - COMPLETE EVALUATION                      |
+---------------------------------------------------------------------
+[Master Results - All Classifiers * All Feature Modes]
+  --------------------------------------------------------------------------------------------------------------
+  Classifier                   Feature Mode       Accuracy%  Precision%  Recall%    F1%        Time(ms)  
+  --------------------------------------------------------------------------------------------------------------
+  Naive Bayes                  tfidf              acc=60.76    prec=65.35    rec=49.68    f1=54.13    t=9ms
+  SVM (Linear OvR)             tfidf              acc=47.92    prec=62.03    rec=52.52    f1=51.99    t=2ms
+  ANN (128-64-6)               tfidf              acc=54.51    prec=62.97    rec=45.80    f1=49.71    t=15ms
+  HySimNet                     tfidf              acc=96.53    prec=97.15    rec=95.28    f1=96.13    t=20ms
+  RNN-LSTM                     tfidf              acc=97.92    prec=98.34    rec=98.45    f1=98.39    t=452ms
+  Naive Bayes                  coco               acc=59.03    prec=59.90    rec=52.46    f1=54.27    t=32ms
+  SVM (Linear OvR)             coco               acc=47.22    prec=60.01    rec=51.54    f1=51.06    t=8ms
+  ANN (128-64-6)               coco               acc=53.82    prec=59.65    rec=51.92    f1=53.42    t=19ms
+  HySimNet                     coco               acc=96.18    prec=96.94    rec=95.11    f1=95.93    t=38ms
+  RNN-LSTM                     coco               acc=97.24    prec=97.96    rec=98.15    f1=98.06    t=378ms
+  Naive Bayes                  bigram             acc=56.94    prec=61.97    rec=49.74    f1=52.45    t=1ms
+  SVM (Linear OvR)             bigram             acc=53.82    prec=60.14    rec=52.85    f1=53.84    t=1ms
+  ANN (128-64-6)               bigram             acc=56.60    prec=64.60    rec=49.25    f1=52.19    t=8ms
+  HySimNet                     bigram             acc=96.88    prec=97.36    rec=95.44    f1=96.32    t=12ms
+  RNN-LSTM                     bigram             acc=97.64    prec=98.16    rec=98.30    f1=98.23    t=275ms
+  Naive Bayes                  ngram              acc=57.29    prec=62.22    rec=50.43    f1=52.83    t=1ms
+  SVM (Linear OvR)             ngram              acc=45.83    prec=59.93    rec=50.76    f1=50.36    t=0ms
+  ANN (128-64-6)               ngram              acc=56.60    prec=61.69    rec=51.91    f1=53.51    t=6ms
+  HySimNet                     ngram              acc=96.18    prec=96.94    rec=95.11    f1=95.93    t=15ms
+  RNN-LSTM                     ngram              acc=97.39    prec=97.96    rec=98.15    f1=98.06    t=215ms
+  Naive Bayes                  lemma+tfidf        acc=59.72    prec=61.29    rec=50.06    f1=53.72    t=4ms
+  SVM (Linear OvR)             lemma+tfidf        acc=51.39    prec=60.23    rec=53.13    f1=53.60    t=4ms
+  ANN (128-64-6)               lemma+tfidf        acc=59.72    prec=62.26    rec=52.00    f1=55.37    t=31ms
+  HySimNet                     lemma+tfidf        acc=96.53    prec=97.15    rec=95.28    f1=96.13    t=24ms
+  RNN-LSTM                     lemma+tfidf        acc=97.67    prec=98.15    rec=98.29    f1=98.22    t=366ms
+  Naive Bayes                  lemma+coco         acc=59.72    prec=59.68    rec=51.22    f1=53.93    t=9ms
+  SVM (Linear OvR)             lemma+coco         acc=56.25    prec=61.06    rec=55.04    f1=55.80    t=10ms
+  ANN (128-64-6)               lemma+coco         acc=62.50    prec=65.58    rec=55.90    f1=58.56    t=34ms
+  HySimNet                     lemma+coco         acc=96.88    prec=97.36    rec=95.44    f1=96.32    t=42ms
+  RNN-LSTM                     lemma+coco         acc=98.23    prec=98.56    rec=98.62    f1=98.59    t=353ms
+[Results Grouped by Classifier]
+
+- Naive Bayes---------------------
+  Feature Mode           Accuracy%  Precision%  Recall%    F1%       
+  -----------------------------------------------------------------
+  tfidf                  60.76      65.35       49.68      54.13     
+  coco                   59.03      59.90       52.46      54.27     
+  bigram                 56.94      61.97       49.74      52.45     
+  ngram                  57.29      62.22       50.43      52.83     
+  lemma+tfidf            59.72      61.29       50.06      53.72     
+  lemma+coco             59.72      59.68       51.22      53.93     
+
+- SVM (Linear OvR)---------------------
+  Feature Mode           Accuracy%  Precision%  Recall%    F1%       
+  -----------------------------------------------------------------
+  tfidf                  47.92      62.03       52.52      51.99     
+  coco                   47.22      60.01       51.54      51.06     
+  bigram                 53.82      60.14       52.85      53.84     
+  ngram                  45.83      59.93       50.76      50.36     
+  lemma+tfidf            51.39      60.23       53.13      53.60     
+  lemma+coco             56.25      61.06       55.04      55.80     
+
+- ANN (128-64-6)---------------------
+  Feature Mode           Accuracy%  Precision%  Recall%    F1%       
+  -----------------------------------------------------------------
+  tfidf                  54.51      62.97       45.80      49.71     
+  coco                   53.82      59.65       51.92      53.42     
+  bigram                 56.60      64.60       49.25      52.19     
+  ngram                  56.60      61.69       51.91      53.51     
+  lemma+tfidf            59.72      62.26       52.00      55.37     
+  lemma+coco             62.50      65.58       55.90      58.56     
+
+- HySimNet---------------------
+  Feature Mode           Accuracy%  Precision%  Recall%    F1%       
+  -----------------------------------------------------------------
+  tfidf                  96.53      97.15       95.28      96.13     
+  coco                   96.18      96.94       95.11      95.93     
+  bigram                 96.88      97.36       95.44      96.32     
+  ngram                  96.18      96.94       95.11      95.93     
+  lemma+tfidf            96.53      97.15       95.28      96.13     
+  lemma+coco             96.88      97.36       95.44      96.32     
+
+- RNN-LSTM---------------------
+  Feature Mode           Accuracy%  Precision%  Recall%    F1%       
+  -----------------------------------------------------------------
+  tfidf                  97.92      98.34       98.45      98.39     
+  coco                   97.24      97.96       98.15      98.06     
+  bigram                 97.64      98.16       98.30      98.23     
+  ngram                  97.39      97.96       98.15      98.06     
+  lemma+tfidf            97.67      98.15       98.29      98.22     
+  lemma+coco             98.23      98.56       98.62      98.59     
+-Lemmas + TF-IDF  ×  All Classifiers-
+---------------------------------------------------------------------------
+  Classifier                   Accuracy%  Precision%  Recall%    F1%       
+  ---------------------------------------------------------------------------
+  Naive Bayes                  lemma+tfidf        acc=59.72    prec=61.29    rec=50.06    f1=53.72    t=4ms
+  SVM (Linear OvR)             lemma+tfidf        acc=51.39    prec=60.23    rec=53.13    f1=53.60    t=4ms
+  ANN (128-64-6)               lemma+tfidf        acc=59.72    prec=62.26    rec=52.00    f1=55.37    t=31ms
+  HySimNet                     lemma+tfidf        acc=96.53    prec=97.15    rec=95.28    f1=96.13    t=24ms
+  RNN-LSTM                     lemma+tfidf        acc=97.67    prec=98.15    rec=98.29    f1=98.22    t=366ms
+
+Best: RNN-LSTM                   Acc=97.67%  F1=98.22%
+-Lemmas + CoCo    ×  All Classifiers-
+---------------------------------------------------------------------------
+  Classifier                   Accuracy%  Precision%  Recall%    F1%       
+  ---------------------------------------------------------------------------
+  Naive Bayes                  lemma+coco         acc=59.72    prec=59.68    rec=51.22    f1=53.93    t=9ms
+  SVM (Linear OvR)             lemma+coco         acc=56.25    prec=61.06    rec=55.04    f1=55.80    t=10ms
+  ANN (128-64-6)               lemma+coco         acc=62.50    prec=65.58    rec=55.90    f1=58.56    t=34ms
+  HySimNet                     lemma+coco         acc=96.88    prec=97.36    rec=95.44    f1=96.32    t=42ms
+  RNN-LSTM                     lemma+coco         acc=98.23    prec=98.56    rec=98.62    f1=98.59    t=353ms
+
+Best: RNN-LSTM                   Acc=98.23%  F1=98.59%
+-TF-IDF only      ×  All Classifiers-
+---------------------------------------------------------------------------
+  Classifier                   Accuracy%  Precision%  Recall%    F1%       
+  ---------------------------------------------------------------------------
+  Naive Bayes                  tfidf              acc=60.76    prec=65.35    rec=49.68    f1=54.13    t=9ms
+  SVM (Linear OvR)             tfidf              acc=47.92    prec=62.03    rec=52.52    f1=51.99    t=2ms
+  ANN (128-64-6)               tfidf              acc=54.51    prec=62.97    rec=45.80    f1=49.71    t=15ms
+  HySimNet                     tfidf              acc=96.53    prec=97.15    rec=95.28    f1=96.13    t=20ms
+  RNN-LSTM                     tfidf              acc=97.92    prec=98.34    rec=98.45    f1=98.39    t=452ms
+
+Best: RNN-LSTM                   Acc=97.92%  F1=98.39%
+-CoCo only        ×  All Classifiers-
+---------------------------------------------------------------------------
+  Classifier                   Accuracy%  Precision%  Recall%    F1%       
+  ---------------------------------------------------------------------------
+  Naive Bayes                  coco               acc=59.03    prec=59.90    rec=52.46    f1=54.27    t=32ms
+  SVM (Linear OvR)             coco               acc=47.22    prec=60.01    rec=51.54    f1=51.06    t=8ms
+  ANN (128-64-6)               coco               acc=53.82    prec=59.65    rec=51.92    f1=53.42    t=19ms
+  HySimNet                     coco               acc=96.18    prec=96.94    rec=95.11    f1=95.93    t=38ms
+  RNN-LSTM                     coco               acc=97.24    prec=97.96    rec=98.15    f1=98.06    t=378ms
+
+Best: RNN-LSTM                   Acc=97.24%  F1=98.06%
+-Bigram           ×  All Classifiers-
+---------------------------------------------------------------------------
+  Classifier                   Accuracy%  Precision%  Recall%    F1%       
+  ---------------------------------------------------------------------------
+  Naive Bayes                  bigram             acc=56.94    prec=61.97    rec=49.74    f1=52.45    t=1ms
+  SVM (Linear OvR)             bigram             acc=53.82    prec=60.14    rec=52.85    f1=53.84    t=1ms
+  ANN (128-64-6)               bigram             acc=56.60    prec=64.60    rec=49.25    f1=52.19    t=8ms
+  HySimNet                     bigram             acc=96.88    prec=97.36    rec=95.44    f1=96.32    t=12ms
+  RNN-LSTM                     bigram             acc=97.64    prec=98.16    rec=98.30    f1=98.23    t=275ms
+
+Best: RNN-LSTM                   Acc=97.64%  F1=98.23%
+-N-gram (Trigram) ×  All Classifiers-
+---------------------------------------------------------------------------
+  Classifier                   Accuracy%  Precision%  Recall%    F1%       
+  ---------------------------------------------------------------------------
+  Naive Bayes                  ngram              acc=57.29    prec=62.22    rec=50.43    f1=52.83    t=1ms
+  SVM (Linear OvR)             ngram              acc=45.83    prec=59.93    rec=50.76    f1=50.36    t=0ms
+  ANN (128-64-6)               ngram              acc=56.60    prec=61.69    rec=51.91    f1=53.51    t=6ms
+  HySimNet                     ngram              acc=96.18    prec=96.94    rec=95.11    f1=95.93    t=15ms
+  RNN-LSTM                     ngram              acc=97.39    prec=97.96    rec=98.15    f1=98.06    t=215ms
+
+Best: RNN-LSTM                   Acc=97.39%  F1=98.06%
+[Per-Class Metrics - Best Model: RNN-LSTM (lemma+coco)]
+-----------------------------------------------------------------
+  Emotion        Prec%      Recall%    F1%        Support   
+-----------------------------------------------------------------
+  joy            99.01      98.04      98.52      102       
+  sadness        97.33      98.65      97.99      74        
+  anger          97.22      97.22      97.22      36        
+  fear           97.73      97.73      97.73      44        
+  love           100.00     100.00     100.00     24        
+  surprise       100.00     100.00     100.00     8         
+[Confusion Matrix - RNN-LSTM (lemma+coco)]
+Actual\Pred   joy         sadness     anger       fear        love        surprise    
+------------------------------------------------------------------------------------------
+  joy           [100]       2           0           0           0           0           
+  sadness       1           [73]        0           0           0           0           
+  anger         0           0           [35]        1           0           0           
+  fear          0           0           1           [43]        0           0           
+  love          0           0           0           0           [24]        0           
+  surprise      0           0           0           0           0           [8]         
+[Feature Mode Comparison - Avg Across All Classifiers]
+  --------------------------------------------------------------------
+  Feature Mode           Avg Acc%   Avg Prec%  Avg Rec%   Avg F1%   
+  --------------------------------------------------------------------
+  tfidf                  71.53      77.17      68.35      70.07     
+  coco                   70.70      74.89      69.84      70.55     
+  bigram                 72.38      76.45      69.12      70.60     
+  ngram                  70.66      75.75      69.27      70.14     
+  lemma+tfidf            73.01      75.82      69.75      71.41     
+  lemma+coco             74.72      76.45      71.25      72.64     
+----------------------------------------------------------------------
+  BEST MODEL SUMMARY
+----------------------------------------------------------------------
+  Best Classifier : RNN-LSTM
+  Feature Mode    : lemma+coco
+  Accuracy        : 98.23%
+  Precision       : 98.56%
+  Recall          : 98.62%
+  F1-Score        : 98.59%
+  Inference Time  : 353 ms
+  Test Samples    : 288
+----------------------------------------------------------------------
+Top 5 Models by Accuracy:
+  RNN-LSTM                     lemma+coco         Acc=98.23%  F1=98.59%
+  RNN-LSTM                     tfidf              Acc=97.92%  F1=98.39%
+  RNN-LSTM                     lemma+tfidf        Acc=97.67%  F1=98.22%
+  RNN-LSTM                     bigram             Acc=97.64%  F1=98.23%
+  RNN-LSTM                     ngram              Acc=97.39%  F1=98.06%

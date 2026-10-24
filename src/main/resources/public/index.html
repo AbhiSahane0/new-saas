@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design and Analysis of Cloud Deployed Intelligent Analysis on Real Time Twitter Data (TSaaS)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ═════════ Login (LoginPage.java) ═════════ -->
+<div id="login" class="login-root">
+  <form class="login-card" id="loginForm" autocomplete="off">
+    <div class="login-title">Design and Analysis of Cloud Deployed Intelligent Analysis<br>on Real Time Twitter Data (TSaaS)</div>
+    <label class="login-lbl" for="user">Username</label>
+    <input id="user" class="login-field" type="text" autofocus>
+    <label class="login-lbl" for="pass">Password</label>
+    <input id="pass" class="login-field" type="password">
+    <button type="submit" class="login-btn">Login</button>
+  </form>
+</div>
+
+<!-- ═════════ Main window (final_code.java) ═════════ -->
+<div id="app" class="app" hidden>
+  <header class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-title">Twitter Emotion Analysis</div>
+      <div class="hdr-sub">NLP Process  ·  Naive Bayes  ·  SVM  ·  ANN  ·  HySimNet  ·  RNN-LSTM</div>
+    </div>
+    <div class="hdr-right">
+      <span id="datasetLabel" class="ds-label">dataset.txt</span>
+      <button id="browseBtn" class="sbtn" style="--fg:var(--accent);--bg:var(--card)">Browse Dataset</button>
+      <button id="runBtn" class="sbtn run" style="--fg:var(--success);--bg:rgb(20,50,35)">&nbsp;&nbsp;Run</button>
+      <input id="fileInput" type="file" accept=".txt,text/plain" hidden>
+    </div>
+  </header>
+
+  <nav id="tabbar" class="tabbar" role="tablist"></nav>
+
+  <main class="content">
+    <!-- Dashboard -->
+    <section id="tab-0" class="tab pad18">
+      <div class="stat-row" id="statRow"></div>
+      <div class="mid">
+        <div class="card"><div class="card-title">&nbsp;&nbsp;Emotion Distribution</div><div class="card-body"><canvas id="pieCanvas"></canvas></div></div>
+        <div class="card"><div class="card-title">&nbsp;&nbsp;Progress</div>
+          <div class="card-body col">
+            <div class="steps" id="steps"></div>
+            <div class="barwrap"><div class="pbar" id="pbar"><div class="pbar-fill" id="pbarFill"><span id="pbarTxt2"></span></div><span class="pbar-txt" id="pbarTxt">Ready — press Run</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section id="tab-1" class="tab pad14">
+      <div class="split" id="split">
+        <fieldset class="tb left" id="splitLeft"><legend>All Classifier Results  (30 experiments)</legend>
+          <div class="scroll"><table class="grid" id="resTable"></table></div></fieldset>
+        <div class="divider" id="divider"></div>
+        <fieldset class="tb right"><legend>Per-Class Metrics  (Best Model)</legend>
+          <div class="scroll"><table class="grid" id="perTable"></table></div></fieldset>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section id="tab-2" class="tab pad14">
+      <div class="card fill"><div class="card-title">&nbsp;&nbsp;Classifier Accuracy by Feature Mode</div><div class="card-body"><canvas id="barCanvas"></canvas></div></div>
+    </section>
+
+    <!-- Confusion -->
+    <section id="tab-3" class="tab pad14">
+      <div class="card fill"><div class="card-title">&nbsp;&nbsp;Confusion Matrix — Best Model</div><div class="card-body"><canvas id="cmCanvas"></canvas></div></div>
+    </section>
+
+    <!-- Log -->
+    <section id="tab-4" class="tab pad12 logtab">
+      <fieldset class="tb logbox"><legend>Console Output</legend><pre id="logArea" class="logarea"></pre></fieldset>
+      <div class="logbtns"><button id="clearBtn" class="sbtn" style="--fg:var(--danger);--bg:rgb(40,15,15)">Clear Log</button></div>
+    </section>
+
+    <!-- Live Bluesky -->
+    <section id="tab-5" class="tab pad14 livetab">
+      <div class="live-main">
+        <div class="card live-ctrl">
+          <div class="ctrl-row">
+            <span id="liveState" class="pill off">● Connecting…</span>
+            <button id="pauseBtn" class="sbtn" style="--fg:var(--warning);--bg:rgb(50,40,10)">Pause</button>
+            <input id="kwBox" class="inp" placeholder="Keyword filter (comma separated, empty = all)" spellcheck="false">
+            <button id="kwBtn" class="sbtn" style="--fg:var(--accent);--bg:var(--card)">Apply</button>
+            <span class="ppm"><b id="ppm">0</b> posts/min</span>
+          </div>
+          <div class="ctrl-row">
+            <span class="lbl">Model</span>
+            <select id="selClf" class="inp sel"></select>
+            <select id="selMode" class="inp sel"></select>
+            <span class="lbl dim" id="modelHint"></span>
+            <span class="spacer"></span>
+            <button id="expCsv" class="sbtn" style="--fg:var(--success);--bg:rgb(20,50,35)">Export CSV</button>
+            <button id="expTxt" class="sbtn" style="--fg:var(--accent2);--bg:rgb(35,25,60)">Export text;label</button>
+          </div>
+        </div>
+        <div class="feed" id="feed"><div class="feed-empty" id="feedEmpty">Waiting for English posts from Bluesky…</div></div>
+      </div>
+      <aside class="live-side">
+        <div class="card"><div class="card-title">&nbsp;&nbsp;Live Stats</div>
+          <div class="card-body pad stats">
+            <div class="kv"><div><span>Judged</span><b id="stJudged">0</b></div><div><span>Correct</span><b id="stCorrect" style="color:var(--success)">0</b></div><div><span>Wrong</span><b id="stWrong" style="color:var(--danger)">0</b></div><div><span>Live accuracy</span><b id="stAcc" style="color:var(--accent)">—</b></div></div>
+            <div class="sub">Per-emotion accuracy</div>
+            <div id="perEmo"></div>
+          </div></div>
+        <div class="card grow"><div class="card-title">&nbsp;&nbsp;Live Confusion Matrix (your marks)</div><div class="card-body"><canvas id="liveCm"></canvas></div></div>
+        <div class="note">Judgments live in this browser tab only — nothing is stored on the server. Exports are generated locally.</div>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="status">
+    <span id="statusLabel">Ready — load a dataset and press Run</span>
+    <span class="ver">Twitter Emotion Analysis  |  6 Emotions  |  5 Classifiers  |  6 Feature Modes</span>
+  </footer>
+</div>
+
+<!-- Modals -->
+<div id="modalRoot"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

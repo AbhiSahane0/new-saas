@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tsaas-twitter-emotion
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: JAVA_OPTS
+        value: "-XX:MaxRAMPercentage=70 -Xss512k"
