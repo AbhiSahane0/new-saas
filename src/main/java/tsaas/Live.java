@@ -25,7 +25,8 @@ public class Live {
     private final Deque<Long> emitted = new ConcurrentLinkedDeque<>();
 
     volatile String keyword = "";
-    volatile boolean paused = false;
+    volatile boolean paused = true;      // stream starts only when the user presses Start
+    volatile boolean started = false;
     volatile boolean connected = false;
     private volatile long cursor = 0;
     private volatile long lastEmit = 0;
@@ -44,14 +45,14 @@ public class Live {
         long cut = System.currentTimeMillis() - 60_000;
         while (!emitted.isEmpty() && emitted.peekFirst() < cut) emitted.pollFirst();
         Map<String,Object> m = new LinkedHashMap<>();
-        m.put("connected", connected); m.put("paused", paused); m.put("keyword", keyword);
+        m.put("connected", connected); m.put("paused", paused); m.put("started", started); m.put("keyword", keyword);
         m.put("ppm", emitted.size()); m.put("ready", pipeline.models != null);
         return m;
     }
 
     public void configure(String kw, Boolean p) {
         if (kw != null) keyword = kw.trim();
-        if (p != null) paused = p;
+        if (p != null) { paused = p; if (!p) started = true; }
         hub.send("live", state());
     }
 

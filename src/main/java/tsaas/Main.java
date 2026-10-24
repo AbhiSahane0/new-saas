@@ -79,7 +79,6 @@ public class Main {
         });
 
         app.start("0.0.0.0", port);
-        pipeline.start();   // auto-run once so the Live tab works straight away
         live.start();
     }
 }

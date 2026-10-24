@@ -118,7 +118,23 @@ function buildDashboard() {
     `<div class="stat" style="--ac:${rgb(c)};--ac-dark:${rgb(darker(c))}"><div class="t">${t}</div><div class="v" id="card-${k}">—</div><div class="s">—</div></div>`).join('');
   $('steps').innerHTML = STEPS.map((s, i) => `<div class="step"><i style="color:${rgb(STEP_COLORS[i])}">○</i><span>${s}</span></div>`).join('');
 }
+function updateSteps(msg) {
+  let done = 0, active = 0, m;
+  if ((m = /^Step (\d)\/6\s+(.*)$/.exec(msg))) { const n = +m[1]; if (m[2].trim() === 'Done') done = n; else { done = n - 1; active = n; } }
+  else if (/^Training/.test(msg)) { done = 3; active = 4; }
+  else if (/^Complete/.test(msg)) done = 6;
+  else if (/^Error/.test(msg)) { done = S.stepDone || 0; active = 0; }
+  S.stepDone = done;
+  [...$('steps').children].forEach((row, i) => {
+    const ic = row.querySelector('i'), lb = row.querySelector('span');
+    row.className = 'step' + (i < done ? ' done' : i + 1 === active ? ' active' : '');
+    ic.textContent = i < done ? '\u2714' : i + 1 === active ? '\u25D4' : '\u25CB';
+    ic.style.color = i < done ? rgb(C.SUCCESS) : rgb(STEP_COLORS[i]);
+    lb.style.color = i < done ? rgb(C.SUCCESS) : i + 1 === active ? rgb(C.TEXT_PRI) : '';
+  });
+}
 function setBar(msg, pct) {
+  updateSteps(msg);
   $('pbarTxt').textContent = msg; $('pbarTxt2').textContent = msg;
   $('pbarFill').style.width = pct + '%';
   $('pbar').style.setProperty('--w', $('pbar').clientWidth + 'px');
@@ -340,9 +356,9 @@ function applyLiveState(s) {
   S.live = s;
   const p = $('liveState');
   if (!s.connected) { p.className = 'pill off'; p.textContent = '● Reconnecting…'; }
-  else if (s.paused) { p.className = 'pill paused'; p.textContent = '⏸ Paused'; }
+  else if (s.paused) { p.className = 'pill paused'; p.textContent = s.started ? '⏸ Paused' : '⏸ Paused — press Start'; }
   else { p.className = 'pill on'; p.textContent = '● Live — connected'; }
-  $('pauseBtn').textContent = s.paused ? 'Resume' : 'Pause';
+  $('pauseBtn').textContent = !s.paused ? 'Pause' : s.started ? 'Resume' : 'Start';
   $('ppm').textContent = s.ppm;
   if (!S.kwDirty && document.activeElement !== $('kwBox')) $('kwBox').value = s.keyword;
 }

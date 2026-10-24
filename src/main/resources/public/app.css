@@ -205,3 +205,6 @@ table.grid{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px
   .status .ver{display:none}
   .tabbar{overflow-x:auto}
 }
+
+.step.active span{font-weight:700}.step.active i{animation:pulse 1s infinite}.step.done span{opacity:.9}
+@keyframes pulse{50%{opacity:.35}}
