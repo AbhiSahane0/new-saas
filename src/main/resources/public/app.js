@@ -318,11 +318,12 @@ function connect() {
   on('log', l => appendLog(l));
   on('status', setStatus);
   on('bar', b => setBar(b.msg, b.pct));
-  on('card', c => applyCards({ [c.k]: c.v }));
+  on('cards', applyCards);
   on('pie', p => { S.pie = p; redrawAll(); });
   on('dataset', n => { $('datasetLabel').textContent = n; });
   on('running', setRunning);
-  on('reset', () => { $('logArea').textContent = ''; resGrid.setRows([]); perGrid.setRows([]); });
+  on('reset', () => { $('logArea').textContent = ''; resGrid.setRows([]); perGrid.setRows([]);
+    STAT_DEFS.forEach(([k]) => { $('card-' + k).textContent = '\u2014'; }); S.pie = null; S.results = null; redrawAll(); });
   on('results', applyResults);
   on('done', d => { selectTab(1); resultDialog(d); });
   on('runerror', m => errorDialog(m));

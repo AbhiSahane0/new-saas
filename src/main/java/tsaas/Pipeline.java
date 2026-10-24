@@ -75,10 +75,10 @@ public class Pipeline {
         barMsg = msg; barPct = pct;
         hub.send("bar", Map.of("msg", msg, "pct", pct));
     }
-    private void setCard(String k, String v) {
-        cards.put(k, v);
-        hub.send("card", Map.of("k", k, "v", v));
-    }
+    // KPI cards and the emotion chart are held back until the run has finished
+    private final Map<String,Object> pendingCards = new LinkedHashMap<>();
+    private Map<String,Object> pendingPie;
+    private void setCard(String k, String v) { pendingCards.put(k, v); }
 
     public Map<String,Object> snapshot() {
         Map<String,Object> m = new LinkedHashMap<>();
@@ -134,7 +134,8 @@ public class Pipeline {
         hub.send("running", true);
         List<ClassifierResult> results = new ArrayList<>();
         synchronized (log) { log.clear(); }
-        view = null;
+        view = null; pie = null; pendingCards.clear(); pendingPie = null;
+        for (String k : new ArrayList<>(cards.keySet())) cards.put(k, "—");
         barMsg = "Starting…"; barPct = 0;
         hub.send("reset", "");
         hub.send("bar", Map.of("msg", "Starting…", "pct", 0));
@@ -235,6 +236,8 @@ public class Pipeline {
 
             models = pm;
             fe = featureExtractor;
+            cards.putAll(pendingCards); pie = pendingPie;
+            hub.send("cards", cards); hub.send("pie", pie);
             ClassifierResult best = best(results);
             barMsg = "Complete ✓";
             hub.send("bar", Map.of("msg", "Complete ✓", "pct", 100));
@@ -272,8 +275,7 @@ public class Pipeline {
                 "pct", String.format("%.1f", counts[i]/total*100)));
         Map<String,Object> m = new LinkedHashMap<>();
         m.put("total", tweets.size()); m.put("legend", legend);
-        pie = m;
-        hub.send("pie", m);
+        pendingPie = m;
     }
 
     /** Mirrors final_code.populateResults(): all numbers are formatted here with String.format. */
