@@ -360,9 +360,18 @@ function connect() {
   es = new EventSource('/api/events');
   const on = (n, f) => es.addEventListener(n, e => f(JSON.parse(e.data)));
   on('snapshot', s => {
-    $('datasetLabel').textContent = s.dataset; setRunning(s.running); setStatus(s.status); setBar(s.bar.msg, s.bar.pct);
-    applyCards(s.cards); S.pie = s.pie; $('logArea').textContent = s.log.join(''); $('logArea').scrollTop = 1e9;
-    if (s.results) applyResults(s.results); else { S.results = null; renderResults(); }
+    // A freshly loaded page starts blank; results of an earlier run are only shown after Run is pressed here.
+    $('datasetLabel').textContent = s.dataset; setRunning(s.running);
+    if (S.ranHere) {
+      setStatus(s.status); setBar(s.bar.msg, s.bar.pct);
+      applyCards(s.cards); S.pie = s.pie; $('logArea').textContent = s.log.join(''); $('logArea').scrollTop = 1e9;
+      if (s.results) applyResults(s.results); else { S.results = null; renderResults(); }
+    } else {
+      S.pie = null; S.results = null; renderResults();
+      STAT_DEFS.forEach(([k]) => { $('card-' + k).textContent = '\u2014'; });
+      if (s.running) { setStatus(s.status); setBar(s.bar.msg, s.bar.pct); $('logArea').textContent = s.log.join(''); }
+      else { setStatus('Ready \u2014 load a dataset and press Run'); setBar('Ready \u2014 press Run', 0); $('logArea').textContent = ''; }
+    }
     redrawAll();
   });
   on('log', l => appendLog(l));
@@ -376,6 +385,7 @@ function connect() {
     STAT_DEFS.forEach(([k]) => { $('card-' + k).textContent = '\u2014'; }); S.pie = null; S.results = null; redrawAll(); });
   on('results', applyResults);
   on('done', d => {
+    S.ranHere = true;
     const tb = thesisBest();
     if (tb && S.thesis) d = { name: tb.name, mode: tb.mode, acc: tb.acc + '%', f1: tb.f1 + '%', n: thesisRowCount(), modes: S.thesis.methods.length };
     selectTab(1); resultDialog(d); });

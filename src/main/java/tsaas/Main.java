@@ -29,7 +29,7 @@ public class Main {
         });
 
         app.get("/api/health", ctx -> ctx.result("ok"));
-        app.get("/api/me", ctx -> ctx.json(Map.of("user", String.valueOf(ctx.sessionAttribute("user")))));
+        app.get("/api/me", ctx -> { Object u = ctx.sessionAttribute("user"); ctx.json(Map.of("user", u == null ? "" : u.toString())); });
         app.post("/api/login", ctx -> {
             JsonNode b = Hub.JSON.readTree(ctx.body());
             String u = b.path("username").asText(""), p = b.path("password").asText("");
