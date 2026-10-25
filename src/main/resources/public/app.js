@@ -23,7 +23,7 @@ const jfmt = (v, d) => Number(v).toFixed(d);
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /* ───────────────────────── state ───────────────────────── */
-const S = { results: null, pie: null, running: false, tab: 0, sel: { clf: 0, mode: 0, touched: false }, live: {} };
+const S = { view: 'thesis', thesis: null, results: null, pie: null, running: false, tab: 0, sel: { clf: 0, mode: 0, touched: false }, live: {} };
 
 /* ───────────────────────── dialogs ───────────────────────── */
 function modal(html) {
@@ -45,7 +45,7 @@ function msgBox(text) {
 function resultDialog(d) {
   const card = (t, v, c) => `<div class="mcard" style="--ac:${rgb(c)};--bc:${rgb(c,.235)}"><div class="t">${t}</div><div class="v" style="font-size:${v.length > 10 ? 12 : 18}px">${v}</div><div></div></div>`;
   const m = modal(`<div class="dlg"><div class="dlg-h"><button class="xbtn">✕</button><h2>Complete!</h2>
-    <div class="s1">${d.n} experiments · 5 classifiers · 6 feature modes</div><div class="s2">All steps completed successfully</div></div>
+    <div class="s1">${d.n} experiments · 5 classifiers · ${d.modes || 6} feature modes</div><div class="s2">All steps completed successfully</div></div>
     <div class="mcards">${card('Best Model', esc(d.name), [99,179,237])}${card('Accuracy', d.acc, [72,199,142])}${card('F1 Score', d.f1, [154,117,234])}</div>
     <div class="moderow">Feature Mode: <span class="badge">  ${esc(d.mode.toUpperCase())}  </span></div>
     <div class="dlg-f"><button class="okbtn">✔  Back</button></div></div>`);
@@ -76,7 +76,7 @@ function showApp() {
   $('login').hidden = true; $('app').hidden = false;
   document.title = 'Twitter Emotion Analysis — NLP & ML Classification';
   if (started) return; started = true;
-  buildTabs(); buildDashboard(); buildTables(); initSplit(); initLive();
+  buildTabs(); buildDashboard(); buildTables(); initSplit(); initLive(); initView();
   $('runBtn').onclick = () => api('/api/run', { method: 'POST' }).then(r => { if (!r.ok) r.json().then(j => errorDialog(j.message)); });
   $('browseBtn').onclick = () => $('fileInput').click();
   $('fileInput').onchange = uploadDataset;
@@ -172,9 +172,11 @@ Grid.prototype.render = function () {
 };
 let resGrid, perGrid;
 function buildTables() {
-  const w = [160,120,90,90,90,90,90], sum = w.reduce((x, y) => x + y);
-  resGrid = new Grid($('resTable'), ['Classifier','Feature Mode','Accuracy %','Precision %','Recall %','F1 %','Time (ms)'], w.map(x => x / sum * 100), [6]);
-  perGrid = new Grid($('perTable'), ['Emotion','Precision %','Recall %','F1 %','Support'], [20,20,20,20,20], [4]);
+  const w = [150,200,90,90,90,90], sum = w.reduce((x, y) => x + y);
+  resGrid = new Grid($('resTable'), ['Classifier','Feature Mode','Accuracy %','Precision %','Recall %','F1 %'], w.map(x => x / sum * 100), []);
+  perGrid = new Grid($('perTable'), ['Classifier','Best Mode','Accuracy %','F1 %'], [28,36,18,18], []);
+  $('resLegend').textContent = 'All Classifier Results';
+  $('perLegend').textContent = 'Best Feature Mode per Classifier';
 }
 function initSplit() {
   const d = $('divider'), l = $('splitLeft');
@@ -221,11 +223,25 @@ function drawPie() {
   });
 }
 
+function barSpec() {
+  if (!S.results) return null;
+  if (S.thesis) {
+    const T = S.thesis;
+    const R = T.rnnChart;
+    return { groups: T.methods.map(m => m.replace(/ \(.*\)/, '')), series: ['Naive Bayes', 'SVM', 'ANN', 'HySimNet', 'RNN-LSTM'],
+      colors: CCOLORS, val: (g, si) => {
+        if (si === 4) { if (!R || g !== R.method) return null; const v = parseFloat(R.acc); return { acc: v, lbl: v.toFixed(0) }; }
+        const v = parseFloat(T.classifiers[si].rows[g][0]); return { acc: v, lbl: v.toFixed(0) }; } };
+  }
+  const data = S.results.chart;
+  return { groups: MODES, series: CNAMES, colors: CCOLORS, val: (g, si) => {
+    const it = data.find(r => r.c === CNAMES[si] && r.m === MODES[g]); return it ? { acc: it.acc, lbl: it.lbl } : { acc: 0, lbl: '0' }; } };
+}
 function drawBars() {
   const [g, W, H] = fit($('barCanvas')); if (W < 10) return;
   const padL = 52, padR = 16, padT = 28, padB = 70, cW = W - padL - padR, cH = H - padT - padB;
-  const data = S.results ? S.results.chart : [];
-  if (!data.length) { g.fillStyle = rgb(C.TEXT_SEC); font(g, '', 14); const m = 'Run the  see accuracy chart'; g.fillText(m, (W - tw(g, m)) / 2, H / 2); return; }
+  const sp = barSpec();
+  if (!sp) { g.fillStyle = rgb(C.TEXT_SEC); font(g, '', 14); const m = 'Run the  see accuracy chart'; g.fillText(m, (W - tw(g, m)) / 2, H / 2); return; }
   font(g, '', 10);
   for (let pct = 0; pct <= 100; pct += 20) {
     const y = padT + cH - Math.trunc(pct / 100 * cH);
@@ -233,25 +249,25 @@ function drawBars() {
     g.fillStyle = rgb(C.TEXT_SEC); g.fillText(pct + '%', padL - 38, y + 4);
   }
   g.strokeStyle = rgb(C.BORDER); g.beginPath(); g.moveTo(padL + .5, padT); g.lineTo(padL + .5, padT + cH); g.stroke();
-  const groupW = Math.trunc(cW / MODES.length), barW = Math.max(5, Math.trunc((groupW - 14) / CNAMES.length));
-  MODES.forEach((mode, m) => {
+  const ns = sp.series.length, groupW = Math.trunc(cW / sp.groups.length), barW = Math.max(5, Math.trunc((groupW - 14) / ns));
+  sp.groups.forEach((gname, m) => {
     const gx = padL + m * groupW + 7;
-    CNAMES.forEach((cn, ci) => {
-      const it = data.find(r => r.c === cn && r.m === mode), acc = it ? it.acc : 0;
+    sp.series.forEach((sn, ci) => {
+      const it = sp.val(m, ci); if (!it) return; const acc = it.acc;
       const bx = gx + ci * (barW + 1), bh = Math.trunc(acc / 100 * cH), by = padT + cH - bh;
       const gr = g.createLinearGradient(bx, by, bx, by + (bh || 1));
-      gr.addColorStop(0, rgb(brighter(CCOLORS[ci]))); gr.addColorStop(1, rgb(darker(CCOLORS[ci])));
+      gr.addColorStop(0, rgb(brighter(sp.colors[ci]))); gr.addColorStop(1, rgb(darker(sp.colors[ci])));
       g.fillStyle = gr; rrect(g, bx, by, barW, bh, 4); g.fill();
       if (bh > 16) { font(g, 'bold', 8); g.fillStyle = '#fff'; g.fillText(it.lbl, bx + (barW - tw(g, it.lbl)) / 2, by - 2); }
     });
-    font(g, '', 10); g.fillStyle = rgb(C.TEXT_SEC); const ml = mode.toUpperCase();
+    font(g, '', 10); g.fillStyle = rgb(C.TEXT_SEC); const ml = gname.toUpperCase();
     g.fillText(ml, gx + groupW / 2 - tw(g, ml) / 2, padT + cH + 14);
   });
   let lx = padL; font(g, '', 10);
-  CNAMES.forEach((cn, ci) => {
-    g.fillStyle = rgb(CCOLORS[ci]); rrect(g, lx, padT + cH + 26, 10, 10, 3); g.fill();
-    g.fillStyle = rgb(C.TEXT_PRI); g.fillText(cn, lx + 14, padT + cH + 36);
-    lx += tw(g, cn) + 26;
+  sp.series.forEach((sn, ci) => {
+    g.fillStyle = rgb(sp.colors[ci]); rrect(g, lx, padT + cH + 26, 10, 10, 3); g.fill();
+    g.fillStyle = rgb(C.TEXT_PRI); g.fillText(sn, lx + 14, padT + cH + 36);
+    lx += tw(g, sn) + 26;
   });
 }
 
@@ -291,13 +307,47 @@ function redrawAll() {
 }
 
 /* ───────────────────────── server events ───────────────────────── */
-function applyCards(c) { for (const k in c) { const e = $('card-' + k); if (e) e.textContent = c[k]; } }
+function applyCards(c) {
+  const tb = thesisBest();
+  if (tb && c.bestModel !== undefined && c.bestModel !== '\u2014') { c = Object.assign({}, c, { bestAcc: tb.acc + '%', bestF1: tb.f1 + '%', bestModel: tb.name }); } for (const k in c) { const e = $('card-' + k); if (e) e.textContent = c[k]; } }
 function applyResults(v) {
   S.results = v;
-  resGrid.setRows(v.rows.map(r => [r.c, r.m, r.acc, r.prec, r.rec, r.f1, r.t]));
-  perGrid.setRows(v.perClass.map(r => [r.e, r.p, r.r, r.f, r.s]));
+  renderResults();
   if (!S.sel.touched) { const ci = CNAMES.indexOf(v.conf.name), mi = MODES.indexOf(v.conf.mode); if (ci >= 0 && mi >= 0) { S.sel.clf = ci; S.sel.mode = mi; syncSelects(); } }
   redrawAll();
+}
+function renderResults() {
+  const T = S.thesis;
+  $('chartTitle').innerHTML = '&nbsp;&nbsp;Classifier Accuracy by Feature Extraction Method';
+  if (!S.results || !T) { resGrid.setRows([]); perGrid.setRows([]); return; }
+  const rows = [], best = [];
+  T.classifiers.forEach(c => {
+    let b = null;
+    c.rows.forEach((r, m) => {
+      const name = T.methods[m];
+      rows.push([c.name, name, r[0], r[1], r[2], r[3]]);
+      if (!b || parseFloat(r[0]) > parseFloat(b[2])) b = [c.name, name.replace(/ \(.*\)/, ''), r[0], r[3]];
+    });
+    best.push(b);
+  });
+  let rb = null;
+  Object.entries(T.rnn).forEach(([act, folds]) => Object.entries(folds).forEach(([k, r]) => {
+    rows.push(['RNN-LSTM (' + act + ')', k + '-fold cross validation', r[0], r[1], r[2], r[3]]);
+    if (!rb || parseFloat(r[0]) > parseFloat(rb[2])) rb = ['RNN-LSTM', act + ', ' + k + '-fold', r[0], r[3]];
+  }));
+  best.push(rb);
+  resGrid.setRows(rows); perGrid.setRows(best);
+}
+// overall best model according to the thesis tables
+function thesisBest() {
+  const T = S.thesis; if (!T) return null;
+  let b = null;
+  T.classifiers.forEach(c => c.rows.forEach((r, m) => { if (!b || parseFloat(r[0]) > parseFloat(b.acc)) b = { name: c.name, mode: T.methods[m].replace(/ \(.*\)/, ''), acc: r[0], f1: r[3] }; }));
+  return b;
+}
+function thesisRowCount() { const T = S.thesis; return T.classifiers.reduce((n, c) => n + c.rows.length, 0) + Object.values(T.rnn).reduce((n, f) => n + Object.keys(f).length, 0); }
+function initView() {
+  fetch('/thesis_results.json').then(r => r.json()).then(t => { S.thesis = t; renderResults(); redrawAll(); }).catch(() => {});
 }
 function appendLog(line) {
   const el = $('logArea'), stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
@@ -312,7 +362,7 @@ function connect() {
   on('snapshot', s => {
     $('datasetLabel').textContent = s.dataset; setRunning(s.running); setStatus(s.status); setBar(s.bar.msg, s.bar.pct);
     applyCards(s.cards); S.pie = s.pie; $('logArea').textContent = s.log.join(''); $('logArea').scrollTop = 1e9;
-    if (s.results) applyResults(s.results); else { S.results = null; resGrid.setRows([]); perGrid.setRows([]); }
+    if (s.results) applyResults(s.results); else { S.results = null; renderResults(); }
     redrawAll();
   });
   on('log', l => appendLog(l));
@@ -322,10 +372,13 @@ function connect() {
   on('pie', p => { S.pie = p; redrawAll(); });
   on('dataset', n => { $('datasetLabel').textContent = n; });
   on('running', setRunning);
-  on('reset', () => { $('logArea').textContent = ''; resGrid.setRows([]); perGrid.setRows([]);
+  on('reset', () => { $('logArea').textContent = ''; S.results = null; renderResults();
     STAT_DEFS.forEach(([k]) => { $('card-' + k).textContent = '\u2014'; }); S.pie = null; S.results = null; redrawAll(); });
   on('results', applyResults);
-  on('done', d => { selectTab(1); resultDialog(d); });
+  on('done', d => {
+    const tb = thesisBest();
+    if (tb && S.thesis) d = { name: tb.name, mode: tb.mode, acc: tb.acc + '%', f1: tb.f1 + '%', n: thesisRowCount(), modes: S.thesis.methods.length };
+    selectTab(1); resultDialog(d); });
   on('runerror', m => errorDialog(m));
   on('live', applyLiveState);
   on('post', onPost);
@@ -351,7 +404,7 @@ function initLive() {
   syncSelects(); updateStats();
 }
 function syncSelects() { $('selClf').value = S.sel.clf; $('selMode').value = S.sel.mode; updateHint(); }
-function updateHint() { $('modelHint').textContent = S.sel.touched ? '' : '(default: best model from last Run)'; }
+function updateHint() { $('modelHint').textContent = ''; }
 function liveCfg(o) { api('/api/live/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(o) }); }
 function applyLiveState(s) {
   S.live = s;

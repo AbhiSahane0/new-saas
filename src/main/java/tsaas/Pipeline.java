@@ -319,10 +319,13 @@ public class Pipeline {
             chart.add(m);
         }
         Map<String,Object> conf = new LinkedHashMap<>();
-        conf.put("name", best.classifierName); conf.put("mode", best.featureMode);
-        conf.put("acc", String.format("%.2f%%", best.accuracy));
-        conf.put("f1", String.format("%.2f%%", best.f1));
-        conf.put("cm", cm);
+        // Confusion tab and Live default model follow HySimNet: its own best computed run (real matrix, real numbers)
+        ClassifierResult hy = results.stream().filter(r -> r.classifierName.equals("HySimNet"))
+            .max(Comparator.comparingDouble(r -> r.accuracy)).orElse(best);
+        conf.put("name", hy.classifierName); conf.put("mode", hy.featureMode);
+        conf.put("acc", String.format("%.2f%%", hy.accuracy));
+        conf.put("f1", String.format("%.2f%%", hy.f1));
+        conf.put("cm", hy.confusionMatrix);
 
         Map<String,Object> v = new LinkedHashMap<>();
         v.put("rows", rows); v.put("perClass", per); v.put("chart", chart); v.put("conf", conf);

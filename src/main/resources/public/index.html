@@ -56,18 +56,20 @@
 
     <!-- Results -->
     <section id="tab-1" class="tab pad14">
-      <div class="split" id="split">
-        <fieldset class="tb left" id="splitLeft"><legend>All Classifier Results  (30 experiments)</legend>
-          <div class="scroll"><table class="grid" id="resTable"></table></div></fieldset>
-        <div class="divider" id="divider"></div>
-        <fieldset class="tb right"><legend>Per-Class Metrics  (Best Model)</legend>
-          <div class="scroll"><table class="grid" id="perTable"></table></div></fieldset>
+      <div class="res-col">
+        <div class="split" id="split">
+          <fieldset class="tb left" id="splitLeft"><legend id="resLegend">All Classifier Results  (30 experiments)</legend>
+            <div class="scroll"><table class="grid" id="resTable"></table></div></fieldset>
+          <div class="divider" id="divider"></div>
+          <fieldset class="tb right"><legend id="perLegend">Per-Class Metrics  (Best Model)</legend>
+            <div class="scroll"><table class="grid" id="perTable"></table></div></fieldset>
+        </div>
       </div>
     </section>
 
     <!-- Charts -->
-    <section id="tab-2" class="tab pad14">
-      <div class="card fill"><div class="card-title">&nbsp;&nbsp;Classifier Accuracy by Feature Mode</div><div class="card-body"><canvas id="barCanvas"></canvas></div></div>
+    <section id="tab-2" class="tab pad14 chcol">
+      <div class="card fill"><div class="card-title" id="chartTitle">&nbsp;&nbsp;Classifier Accuracy by Feature Mode</div><div class="card-body"><canvas id="barCanvas"></canvas></div></div>
     </section>
 
     <!-- Confusion -->
