@@ -119,14 +119,17 @@ public class Live {
     private void emit(String did, String rkey, String text, String created) {
         try {
             String handle = handleOf(did);
+            long pt0 = System.nanoTime();
             int[] preds = pipeline.predictAll(text);
+            double predMs = (System.nanoTime() - pt0) / 1e6;
             Map<String,Object> m = new LinkedHashMap<>();
             m.put("id", did + "/" + rkey);
             m.put("uri", "at://" + did + "/app.bsky.feed.post/" + rkey);
             m.put("url", "https://bsky.app/profile/" + did + "/post/" + rkey);
             m.put("author", handle); m.put("text", text);
             m.put("time", created.isEmpty() ? java.time.Instant.now().toString() : created);
-            m.put("preds", preds);
+            m.put("preds", preds); m.put("latencyMs", preds == null ? null : Math.round(predMs * 100) / 100.0);
+            if (preds != null) pipeline.logLine(String.format("[live] %s  all 30 models predicted in %.2f ms  | %s", handle, predMs, text.replaceAll("\\s+", " ").substring(0, Math.min(60, text.replaceAll("\\s+", " ").length()))));
             emitted.addLast(System.currentTimeMillis());
             seen.incrementAndGet();
             hub.send("post", m);

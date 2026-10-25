@@ -70,6 +70,20 @@ public class Pipeline {
         System.setOut(new PrintStream(os, true, StandardCharsets.UTF_8));
     }
 
+    /** Append a line to the shared log (used for live latency lines). */
+    public void logLine(String line) {
+        String l = line + "\n";
+        synchronized (log) { log.add(l); if (log.size() > 20000) log.remove(0); }
+        hub.send("log", l);
+    }
+
+    /** Average real predict latency (feature vector + predict) per test tweet, in ms. */
+    private double predictLatencyMs(Predictor pr, FeatureExtractor f, String mode, List<Tweet> test) {
+        long t0 = System.nanoTime();
+        for (Tweet t : test) pr.predict(f.buildVector(t, mode), t.getLemmas());
+        return (System.nanoTime() - t0) / 1e6 / Math.max(1, test.size());
+    }
+
     private void setStatus(String msg) { status = msg; hub.send("status", msg); }
     private void masterBar(String msg, int pct) {
         barMsg = msg; barPct = pct;
@@ -139,6 +153,8 @@ public class Pipeline {
         barMsg = "Starting…"; barPct = 0;
         hub.send("reset", "");
         hub.send("bar", Map.of("msg", "Starting…", "pct", 0));
+        long runT0 = System.nanoTime();
+        List<String[]> lat = new ArrayList<>();
         try {
             // Step 1
             setStatus("Step 1 — Loading dataset…");
@@ -147,6 +163,8 @@ public class Pipeline {
             List<Tweet> allTweets = loader.load(datasetPath.toString());
             setCard("total", String.valueOf(allTweets.size()));
             setPie(allTweets);
+            System.out.printf("  [latency] Step 1 Load Dataset: %d ms%n", (System.nanoTime() - runT0) / 1_000_000);
+            long st = System.nanoTime();
             masterBar("Step 1/6  Done", 12);
 
             // Step 2
@@ -154,6 +172,8 @@ public class Pipeline {
             masterBar("Step 2/6  Pre-processing", 14);
             System.out.println("\nclean - tokenise - stopword removal - lemmatise ...");
             new Preprocessor().preprocess(allTweets);
+            System.out.printf("  [latency] Step 2 Pre-process: %d ms%n", (System.nanoTime() - st) / 1_000_000);
+            st = System.nanoTime();
             masterBar("Step 2/6  Done", 22);
 
             // Step 3
@@ -170,6 +190,7 @@ public class Pipeline {
             featureExtractor.printFeatureSummary(allTweets);
             setCard("train", String.valueOf(trainTweets.size()));
             setCard("test", String.valueOf(testTweets.size()));
+            System.out.printf("  [latency] Step 3 Feature extraction (vocab build): %d ms%n%n", (System.nanoTime() - st) / 1_000_000);
             masterBar("Step 3/6  Done", 32);
 
             // Step 4
@@ -182,42 +203,67 @@ public class Pipeline {
 
                 System.out.print("  Naive Bayes    ... ");
                 NaiveBayes nbm = new NaiveBayes();
+                long w00 = System.nanoTime();
                 ClassifierResult nb = nbm.train(trainTweets, testTweets, featureExtractor, mode);
+                long wallMs0 = (System.nanoTime() - w00) / 1_000_000;
                 pm[0][mi] = nbm::predictWithLexicon;
                 results.add(nb); done++;
                 System.out.printf("Acc=%.2f%% F1=%.2f%%%n", nb.accuracy, nb.f1);
+                double pms0 = predictLatencyMs(nbm::predictWithLexicon, featureExtractor, mode, testTweets);
+                System.out.printf("      [latency] train+evaluate: %d ms | predict: %.3f ms/tweet (%d test tweets)%n", wallMs0, pms0, testTweets.size());
+                lat.add(new String[]{"Naive Bayes", mode, String.valueOf(wallMs0), String.format("%.3f", pms0)});
                 masterBar("Training " + mode.toUpperCase() + "…", 32 + done*38/total);
 
                 System.out.print("  SVM            ... ");
                 SVM svmm = new SVM();
+                long w01 = System.nanoTime();
                 ClassifierResult svm = svmm.train(trainTweets, testTweets, featureExtractor, mode);
+                long wallMs1 = (System.nanoTime() - w01) / 1_000_000;
                 pm[1][mi] = svmm::predict;
                 results.add(svm); done++;
                 System.out.printf("Acc=%.2f%% F1=%.2f%%%n", svm.accuracy, svm.f1);
+                double pms1 = predictLatencyMs(svmm::predict, featureExtractor, mode, testTweets);
+                System.out.printf("      [latency] train+evaluate: %d ms | predict: %.3f ms/tweet (%d test tweets)%n", wallMs1, pms1, testTweets.size());
+                lat.add(new String[]{"SVM (Linear OvR)", mode, String.valueOf(wallMs1), String.format("%.3f", pms1)});
                 masterBar("Training " + mode.toUpperCase() + "…", 32 + done*38/total);
 
                 System.out.print("  ANN            ... ");
                 ANN annm = new ANN();
+                long w02 = System.nanoTime();
                 ClassifierResult ann = annm.train(trainTweets, testTweets, featureExtractor, mode);
+                long wallMs2 = (System.nanoTime() - w02) / 1_000_000;
                 pm[2][mi] = annm::predict;
                 results.add(ann); done++;
                 System.out.printf("Acc=%.2f%% F1=%.2f%%%n", ann.accuracy, ann.f1);
+                double pms2 = predictLatencyMs(annm::predict, featureExtractor, mode, testTweets);
+                System.out.printf("      [latency] train+evaluate: %d ms | predict: %.3f ms/tweet (%d test tweets)%n", wallMs2, pms2, testTweets.size());
+                lat.add(new String[]{"ANN (128-64-6)", mode, String.valueOf(wallMs2), String.format("%.3f", pms2)});
                 masterBar("Training " + mode.toUpperCase() + "…", 32 + done*38/total);
 
                 System.out.print("  HySimNet       ... ");
                 HySimNet hym = new HySimNet();
+                long w03 = System.nanoTime();
                 ClassifierResult hy = hym.train(trainTweets, testTweets, featureExtractor, mode);
+                long wallMs3 = (System.nanoTime() - w03) / 1_000_000;
                 pm[3][mi] = hym::predict;
                 results.add(hy); done++;
                 System.out.printf("Acc=%.2f%% F1=%.2f%%%n", hy.accuracy, hy.f1);
+                double pms3 = predictLatencyMs(hym::predict, featureExtractor, mode, testTweets);
+                System.out.printf("      [latency] train+evaluate: %d ms | predict: %.3f ms/tweet (%d test tweets)%n", wallMs3, pms3, testTweets.size());
+                lat.add(new String[]{"HySimNet", mode, String.valueOf(wallMs3), String.format("%.3f", pms3)});
                 masterBar("Training " + mode.toUpperCase() + "…", 32 + done*38/total);
 
                 System.out.print("  RNN-LSTM       ... ");
                 RNN_LSTM_N lstmm = new RNN_LSTM_N();
+                long w04 = System.nanoTime();
                 ClassifierResult lstm = lstmm.train(trainTweets, testTweets, featureExtractor, mode);
+                long wallMs4 = (System.nanoTime() - w04) / 1_000_000;
                 pm[4][mi] = lstmm::predict;
                 results.add(lstm); done++;
                 System.out.printf("Acc=%.2f%% F1=%.2f%%%n", lstm.accuracy, lstm.f1);
+                double pms4 = predictLatencyMs(lstmm::predict, featureExtractor, mode, testTweets);
+                System.out.printf("      [latency] train+evaluate: %d ms | predict: %.3f ms/tweet (%d test tweets)%n", wallMs4, pms4, testTweets.size());
+                lat.add(new String[]{"RNN-LSTM", mode, String.valueOf(wallMs4), String.format("%.3f", pms4)});
                 masterBar("Training " + mode.toUpperCase() + "…", 32 + done*38/total);
             }
 
@@ -225,6 +271,10 @@ public class Pipeline {
             setStatus("Step 5 — Evaluating models…");
             masterBar("Step 5/6  Evaluation", 72);
             new ResultPrinter().printAllResults(results);
+            System.out.println("\n[Latency Summary - measured on this server]");
+            System.out.printf("  %-18s %-12s %16s %20s%n", "Classifier", "Feature Mode", "Train+Eval (ms)", "Predict (ms/tweet)");
+            for (String[] r : lat) System.out.printf("  %-18s %-12s %16s %20s%n", r[0], r[1], r[2], r[3]);
+            System.out.printf("  Total pipeline time: %d ms%n", (System.nanoTime() - runT0) / 1_000_000);
             masterBar("Step 5/6  Done", 88);
 
             // Step 6
